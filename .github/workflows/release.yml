@@ -174,7 +174,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y ninja-build libgtk-3-dev webkit2gtk-4.1 libmpv-dev pkg-config
+          sudo apt-get install -y ninja-build libgtk-3-dev webkit2gtk-4.1 libmpv-dev pkg-config fuse libfuse2 appstream
 
       # Create .env:
       - name: Setup env File
@@ -188,8 +188,10 @@ jobs:
         run: flutter pub get
 
       # Step 6: Build the Linux application
-      - name: Build Flutter Linux app
-        run: flutter build linux
+      - name: Create AppImage
+        run: |
+          chmod +x build_appimage.sh
+          ./build_appimage.sh
 
       # Step 7: Archive the app
       - name: Archive app
@@ -202,6 +204,7 @@ jobs:
         uses: softprops/action-gh-release@master
         with:
           files: build/linux/x64/release/bundle/Dartotsu_Linux_${{github.ref_name}}.zip
+          
   build_ios:
     runs-on: macos-latest
     permissions:
