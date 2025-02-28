@@ -1,0 +1,66 @@
+name: Build and Release AnymeX
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:          
+  build-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    steps:
+      # Step 1: Clone repository
+      - name: Cloning repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.27.1
+          cache: true
+
+      # Step 3: Setup system dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build libgtk-3-dev webkit2gtk-4.1 libmpv-dev pkg-config
+
+      # Create .env:
+      - name: Setup env File
+        env:
+          SIMKL_SECRET: ${{ secrets.SIMKL_SECRET }}
+        run: |
+          echo "SIMKL_SECRET= $SIMKL_SECRET" > .env
+
+      # Step 5: Fetch Flutter dependencies
+      - name: Fetch Flutter dependencies
+        run: flutter pub get
+
+      # Step 6: Build the Linux application
+      - name: Build Flutter Linux app
+        run: flutter build linux
+
+      # Step 7: Archive the app
+      - name: Archive app
+        uses: thedoctor0/zip-release@master
+        with:
+          type: "zip"
+          filename: Dartotsu_Linux_${{github.ref_name}}.zip
+          directory: build/linux/x64/release/bundle
+
+      # Step 8: Release
+      - name: Release Linux Build and AppImage
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            build/linux/x64/release/Dartotsu_Linux_${{github.ref_name}}.zip
+            AppDir/${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          tag: ${{ github.ref_name }}
